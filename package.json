@@ -1,0 +1,29 @@
+{
+  "name": "interview-prep-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turns a job description plus a company website into a researched, structured interview preparation kit.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "evaluate": "tsx src/evaluation/cli.ts",
+    "start": "tsx src/api/server.ts",
+    "dev": "tsx watch src/api/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fixture:site": "tsx scripts/serve-fixture-site.ts"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.10",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.8"
+  }
+}
