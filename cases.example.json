@@ -1,0 +1,32 @@
+[
+  {
+    "id": "case-01",
+    "jd": "Senior Full-Stack Engineer\n\nAbout the role\nYou will own features end to end across our fleet platform, from the API to the operator dashboard, and help set the technical direction of the web team.\n\nWhat you'll do\n- Build and ship customer-facing features in React and Node.js\n- Work with product and design on the operator dashboard\n- Improve our deployment pipeline and test coverage\n\nRequirements\n- 5+ years of professional software engineering experience\n- Strong experience with React and TypeScript in production\n- Experience designing and operating REST APIs in Node.js\n- Solid understanding of relational data modelling with PostgreSQL\n- Experience mentoring junior engineers and reviewing their work\n- Excellent written communication; we are a documentation-first team\n\nNice to have\n- Experience with Kubernetes or other container orchestration\n- Exposure to robotics, logistics or warehouse operations\n- Contributions to open source\n\nBenefits\n- 30 days holiday, private healthcare and a learning budget\n- We are an equal opportunity employer\n\nLocation: Hybrid in Bristol, two days a week in the office",
+    "company_url": "http://127.0.0.1:8099/acme/",
+    "days": 5
+  },
+  {
+    "id": "case-02",
+    "jd": "Software Engineer\nWe need someone who knows Python and can work independently.",
+    "company_url": "http://127.0.0.1:8099/quietco/",
+    "days": 3
+  },
+  {
+    "id": "case-03",
+    "jd": "Staff Backend Engineer (Observability)\n\nWe are looking for a staff engineer to lead the design of our span ingestion pipeline.\n\nResponsibilities\n- Design and evolve the ingestion path that handles millions of spans per minute\n- Lead architecture reviews across the platform team\n- Mentor senior engineers and raise the bar on operational readiness\n\nWhat we're looking for\n- Proven experience designing distributed systems at scale\n- Deep knowledge of Go or Rust in production\n- Experience with Kafka, stream processing and backpressure\n- Strong grasp of observability: metrics, tracing and structured logging\n- Track record of mentoring and technical leadership\n\nBonus points for\n- Experience with ClickHouse or other columnar stores\n- Public writing or conference speaking\n\nRemote-first, nine time zones.",
+    "company_url": "http://127.0.0.1:8099/deeporg/",
+    "days": 60
+  },
+  {
+    "id": "case-04",
+    "jd": "Frontend Engineer\n\nRequirements\n- 3+ years building single page applications with Vue or React\n- Experience with accessibility standards (WCAG 2.1)\n- Comfortable writing end-to-end tests with Playwright or Cypress\n\nNice to have\n- Design system experience\n\nWe are a fully remote team.",
+    "company_url": "http://127.0.0.1:9/definitely-not-here/",
+    "days": 1
+  },
+  {
+    "id": "case-05",
+    "jd": "Data Engineer\n\nWhat you'll do\n- Build and maintain batch and streaming pipelines feeding our analytics warehouse\n- Partner with analysts to model data they can trust\n\nRequirements\n- 4+ years of experience building data pipelines in Python\n- Strong SQL, including window functions and query tuning\n- Experience with Airflow or a comparable orchestrator\n- Familiarity with dimensional modelling in a warehouse such as Snowflake or BigQuery\n\nPreferred\n- dbt experience\n- Exposure to GDPR and data retention requirements\n\nLocation: Remote (UK)",
+    "company_url": "http://127.0.0.1:8099/acme/",
+    "days": 7
+  }
+]
