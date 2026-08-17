@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interview Prep Kit</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f7f7f8;
+        --panel: #ffffff;
+        --ink: #16181d;
+        --muted: #5c6270;
+        --line: #e2e4e9;
+        --accent: #2f5bea;
+        --warn: #b4451c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161a;
+          --panel: #1c1f25;
+          --ink: #eceef2;
+          --muted: #a2a8b6;
+          --line: #2c3038;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      header { border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; gap: 12px; align-items: center; }
+      header h1 { font-size: 16px; margin: 0; flex: 1; }
+      main { max-width: 960px; margin: 0 auto; padding: 20px; display: grid; gap: 20px; }
+      section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+      h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+      label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+      input, textarea, select, button {
+        font: inherit; color: inherit; background: var(--panel);
+        border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+      }
+      textarea { min-height: 140px; resize: vertical; }
+      button { cursor: pointer; width: auto; }
+      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      button:focus-visible, a:focus-visible, [tabindex]:focus-visible, input:focus-visible, textarea:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 2px;
+      }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+      .grid { display: grid; gap: 10px; }
+      .muted { color: var(--muted); font-size: 13px; }
+      .pill { font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
+      .pill.edited { border-color: var(--accent); color: var(--accent); }
+      .pill.manual { border-color: var(--warn); color: var(--warn); }
+      .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; }
+      .card[aria-grabbed="true"] { border-color: var(--accent); }
+      .error { color: var(--warn); }
+      .progress { display: grid; gap: 4px; font-size: 13px; }
+      .hidden { display: none; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      td, th { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; vertical-align: top; }
+      @media (max-width: 620px) { main { padding: 12px; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Interview Prep Kit</h1>
+      <span id="who" class="muted"></span>
+      <button id="logout" class="hidden">Sign out</button>
+    </header>
+    <main>
+      <section id="auth">
+        <h2>Sign in</h2>
+        <div class="grid" style="max-width: 420px">
+          <div><label for="email">Email</label><input id="email" type="email" autocomplete="username" /></div>
+          <div><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" /></div>
+          <div class="row">
+            <button class="primary" id="login">Sign in</button>
+            <button id="register">Create account</button>
+          </div>
+          <p id="auth-error" class="error" role="alert"></p>
+        </div>
+      </section>
+
+      <section id="create" class="hidden">
+        <h2>New kit</h2>
+        <div class="grid">
+          <div><label for="jd">Job description</label><textarea id="jd" placeholder="Paste the posting here"></textarea></div>
+          <div class="row">
+            <div style="flex:2; min-width: 240px"><label for="url">Company website</label><input id="url" placeholder="https://example.com" /></div>
+            <div style="flex:1; min-width: 120px"><label for="days">Days until interview</label><input id="days" type="number" min="1" max="60" value="5" /></div>
+          </div>
+          <div class="row">
+            <button class="primary" id="generate">Generate kit</button>
+            <span id="create-error" class="error" role="alert"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="kits" class="hidden">
+        <h2>Your kits</h2>
+        <div id="kit-list" class="grid"></div>
+      </section>
+
+      <section id="kit" class="hidden" aria-live="polite"></section>
+    </main>
+
+    <script type="module">
+      const $ = (id) => document.getElementById(id);
+      const state = { user: null, kitId: null, poll: null };
+
+      async function api(path, options = {}) {
+        const response = await fetch(`/api${path}`, {
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          ...options,
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload?.error?.message ?? `request failed (${response.status})`);
+        return payload;
+      }
+
+      function show(id, visible) { $(id).classList.toggle('hidden', !visible); }
+
+      async function refreshSession() {
+        try {
+          const { user } = await api('/me');
+          state.user = user;
+        } catch { state.user = null; }
+        $('who').textContent = state.user ? state.user.email : '';
+        show('auth', !state.user);
+        show('create', Boolean(state.user));
+        show('kits', Boolean(state.user));
+        show('logout', Boolean(state.user));
+        if (state.user) await loadKits();
+      }
+
+      async function loadKits() {
+        const { kits } = await api('/kits');
+        const list = $('kit-list');
+        list.innerHTML = '';
+        if (kits.length === 0) {
+          list.innerHTML = '<p class="muted">No kits yet. Paste a posting above to make one.</p>';
+          return;
+        }
+        for (const kit of kits) {
+          const row = document.createElement('div');
+          row.className = 'card';
+          row.innerHTML = `<div class="row"><strong>${kit.role ?? 'Generating...'}</strong>
+            <span class="pill">${kit.status}</span>
+            <span class="muted">${kit.company ?? ''} - ${kit.days} days</span></div>`;
+          const open = document.createElement('button');
+          open.textContent = kit.status === 'ready' ? 'Open' : 'View progress';
+          open.addEventListener('click', () => openKit(kit.id));
+          row.append(open);
+          list.append(row);
+        }
+      }
+
+      async function openKit(id) {
+        state.kitId = id;
+        show('kit', true);
+        clearInterval(state.poll);
+        await renderKit();
+        state.poll = setInterval(async () => {
+          const { kit } = await api(`/kits/${id}`);
+          if (kit.status === 'ready' || kit.status === 'failed') {
+            clearInterval(state.poll);
+            await renderKit();
+            await loadKits();
+          } else {
+            renderProgress(kit);
+          }
+        }, 2000);
+      }
+
+      function renderProgress(document_) {
+        $('kit').innerHTML = `<h2>Generating</h2>
+          <div class="progress">${document_.progress
+            .map((stage) => `<div>${stage.status === 'done' ? '+' : stage.status === 'failed' ? '!' : '-'} ${stage.stage} <span class="muted">${stage.detail ?? ''}</span></div>`)
+            .join('')}</div>
+          <p class="muted">This usually takes under a minute. You can leave this page and come back.</p>`;
+      }
+
+      async function renderKit() {
+        const { kit: doc } = await api(`/kits/${state.kitId}`);
+        if (doc.status === 'failed') {
+          $('kit').innerHTML = `<h2>Generation failed</h2><p class="error">${doc.error?.code}: ${doc.error?.message}</p>`;
+          return;
+        }
+        if (doc.status !== 'ready') return renderProgress(doc);
+
+        const kit = doc.kit;
+        const stateOf = (id) => doc.item_state[id]?.origin ?? 'generated';
+        const pillFor = (id) => {
+          const origin = stateOf(id);
+          const pinned = doc.item_state[id]?.pinned ? ' (pinned)' : '';
+          return `<span class="pill ${origin}">${origin}${pinned}</span>`;
+        };
+
+        $('kit').innerHTML = `
+          <h2>${kit.source.role} at ${kit.source.company || 'unknown company'}</h2>
+          <p class="muted">${kit.source.pages_used.length} pages used - coverage gaps: ${kit.coverage.uncovered_requirement_ids.length} - passes: ${kit.coverage.passes}</p>
+          <h2>Company brief ${pillFor('company_brief')}</h2>
+          <p contenteditable="true" id="brief-summary" tabindex="0">${kit.company_brief.summary}</p>
+          <div class="row"><button id="save-brief">Save brief</button><button id="regen-brief">Regenerate brief</button></div>
+          <h2>Requirements</h2>
+          <table><tbody>${kit.role.requirements
+            .map((r) => `<tr><td>${r.id}</td><td>${r.text}</td><td><span class="pill">${r.kind}</span></td><td><span class="pill">${r.priority}</span></td></tr>`)
+            .join('')}</tbody></table>
+          <h2>Questions</h2>
+          <div class="grid" id="questions">${kit.questions
+            .map(
+              (q) => `<div class="card" draggable="true" data-id="${q.id}" tabindex="0">
+                <div class="row"><span class="pill">${q.category}</span><span class="pill">difficulty ${q.difficulty}</span>
+                  <span class="muted">covers ${q.requirement_ids.join(', ') || 'nothing'}</span>${pillFor(q.id)}</div>
+                <div contenteditable="true" data-field="prompt">${q.prompt}</div>
+                <div class="muted" contenteditable="true" data-field="answer_outline">${q.answer_outline}</div>
+                <div class="row"><button data-action="save" data-id="${q.id}">Save</button>
+                  <button data-action="pin" data-id="${q.id}">Pin</button>
+                  <button data-action="delete" data-id="${q.id}">Delete</button></div>
+              </div>`,
+            )
+            .join('')}</div>
+          <div class="row"><button id="regen-technical">Regenerate technical questions</button>
+            <span class="muted">Edited, manual and pinned questions survive a regeneration.</span></div>
+          <h2>Schedule</h2>
+          <table><thead><tr><th>Day</th><th>Focus</th><th>Minutes</th><th>Questions</th></tr></thead>
+            <tbody>${kit.schedule.days
+              .map((d) => `<tr><td>${d.day}</td><td>${d.focus}</td><td>${d.minutes}</td><td>${d.question_ids.join(' ')}</td></tr>`)
+              .join('')}</tbody></table>
+          <h2>Practice</h2>
+          <div id="practice"></div>
+          <h2>Readiness</h2>
+          <div id="readiness"></div>`;
+
+        wireKit(kit);
+        await renderPractice();
+        await renderReadiness();
+      }
+
+      function wireKit(kit) {
+        $('save-brief').onclick = async () => {
+          await api(`/kits/${state.kitId}/brief`, { method: 'PATCH', body: { summary: $('brief-summary').textContent } });
+          await renderKit();
+        };
+        $('regen-brief').onclick = async () => {
+          await api(`/kits/${state.kitId}/regenerate`, { method: 'POST', body: { section: 'company_brief' } });
+          await renderKit();
+        };
+        $('regen-technical').onclick = async () => {
+          await api(`/kits/${state.kitId}/regenerate`, { method: 'POST', body: { section: 'questions', category: 'technical' } });
+          await renderKit();
+        };
+
+        const container = $('questions');
+        container.onclick = async (event) => {
+          const button = event.target.closest('button');
+          if (!button) return;
+          const card = button.closest('.card');
+          const id = button.dataset.id;
+          if (button.dataset.action === 'save') {
+            await api(`/kits/${state.kitId}/questions/${id}`, {
+              method: 'PATCH',
+              body: {
+                prompt: card.querySelector('[data-field="prompt"]').textContent,
+                answer_outline: card.querySelector('[data-field="answer_outline"]').textContent,
+              },
+            });
+          }
+          if (button.dataset.action === 'pin') {
+            await api(`/kits/${state.kitId}/items/${id}/pin`, { method: 'POST', body: { pinned: true } });
+          }
+          if (button.dataset.action === 'delete') {
+            await api(`/kits/${state.kitId}/questions/${id}`, { method: 'DELETE' });
+          }
+          await renderKit();
+        };
+
+        // Reordering: drag, or keyboard with alt+arrow for people not using a mouse.
+        let dragged = null;
+        container.addEventListener('dragstart', (event) => { dragged = event.target.closest('.card'); });
+        container.addEventListener('dragover', (event) => event.preventDefault());
+        container.addEventListener('drop', async (event) => {
+          const target = event.target.closest('.card');
+          if (!dragged || !target || dragged === target) return;
+          target.before(dragged);
+          await persistOrder();
+        });
+        container.addEventListener('keydown', async (event) => {
+          if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+          const card = event.target.closest('.card');
+          if (!card) return;
+          event.preventDefault();
+          if (event.key === 'ArrowUp' && card.previousElementSibling) card.previousElementSibling.before(card);
+          if (event.key === 'ArrowDown' && card.nextElementSibling) card.nextElementSibling.after(card);
+          card.focus();
+          await persistOrder();
+        });
+      }
+
+      async function persistOrder() {
+        const ids = [...$('questions').querySelectorAll('.card')].map((card) => card.dataset.id);
+        await api(`/kits/${state.kitId}/questions/reorder`, { method: 'POST', body: { question_ids: ids } });
+      }
+
+      async function renderPractice() {
+        const { session } = await api(`/kits/${state.kitId}/practice`);
+        const next = session.due[0] ?? session.unseen[0];
+        const target = $('practice');
+        if (!next) {
+          target.innerHTML = `<p class="muted">Nothing due. ${session.covered}/${session.total} cards covered.</p>`;
+          return;
+        }
+        target.innerHTML = `<div class="card"><strong>${next.front}</strong>
+          <div id="answer" class="hidden muted">${next.back}</div>
+          <div class="row"><button id="reveal">Reveal</button>
+            ${[1, 2, 3, 4].map((n) => `<button data-confidence="${n}">${['Again', 'Hard', 'Good', 'Easy'][n - 1]}</button>`).join('')}
+          </div>
+          <p class="muted">${session.covered}/${session.total} covered, ${session.due.length} due</p></div>`;
+        $('reveal').onclick = () => $('answer').classList.remove('hidden');
+        target.querySelectorAll('[data-confidence]').forEach((button) => {
+          button.onclick = async () => {
+            await api(`/kits/${state.kitId}/practice`, {
+              method: 'POST',
+              body: { card_id: next.id, confidence: Number(button.dataset.confidence) },
+            });
+            await renderPractice();
+          };
+        });
+      }
+
+      async function renderReadiness() {
+        const { readiness } = await api(`/kits/${state.kitId}/readiness`);
+        $('readiness').innerHTML = `
+          <p class="muted">${readiness.must_ready}/${readiness.must_total} must-have requirements look solid.</p>
+          <table><thead><tr><th>Requirement</th><th>Priority</th><th>Status</th><th>Reviews</th></tr></thead>
+          <tbody>${readiness.weakest
+            .map((entry) => `<tr><td>${entry.text}</td><td><span class="pill">${entry.priority}</span></td>
+              <td><span class="pill">${entry.status}</span></td><td>${entry.reviews}</td></tr>`)
+            .join('')}</tbody></table>
+          <div class="row"><label for="replan-days" class="muted">Days left</label>
+            <input id="replan-days" type="number" min="1" max="60" value="3" style="width:80px" />
+            <button id="replan">Re-plan around my weak spots</button></div>`;
+        $('replan').onclick = async () => {
+          await api(`/kits/${state.kitId}/replan`, { method: 'POST', body: { days: Number($('replan-days').value) } });
+          await renderKit();
+        };
+      }
+
+      $('login').onclick = async () => {
+        try {
+          await api('/auth/login', { method: 'POST', body: { email: $('email').value, password: $('password').value } });
+          $('auth-error').textContent = '';
+          await refreshSession();
+        } catch (error) { $('auth-error').textContent = error.message; }
+      };
+      $('register').onclick = async () => {
+        try {
+          await api('/auth/register', { method: 'POST', body: { email: $('email').value, password: $('password').value } });
+          $('auth-error').textContent = '';
+          await refreshSession();
+        } catch (error) { $('auth-error').textContent = error.message; }
+      };
+      $('logout').onclick = async () => { await api('/auth/logout', { method: 'POST' }); await refreshSession(); };
+      $('generate').onclick = async () => {
+        try {
+          const { kit } = await api('/kits', {
+            method: 'POST',
+            body: { jd: $('jd').value, company_url: $('url').value, days: Number($('days').value) },
+          });
+          $('create-error').textContent = '';
+          await loadKits();
+          await openKit(kit.id);
+        } catch (error) { $('create-error').textContent = error.message; }
+      };
+
+      refreshSession();
+    </script>
+  </body>
+</html>
