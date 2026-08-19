@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /deeporg/private/
+Sitemap: /sitemap.xml
