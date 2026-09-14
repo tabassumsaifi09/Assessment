@@ -3,4 +3,4 @@ dist/
 .env
 .data/
 *.local.json
-coverage/
+/coverage/
